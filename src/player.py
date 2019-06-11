@@ -25,6 +25,24 @@ class Player(ABC):
 
         self.sensors = []
 
+        self.last_score = self.score
+        self.stuck_counter = 0
+        self.stuck_limit = 50
+        
+    def is_stuck(self):
+        """
+        Checks if player gets stuck.
+        """
+        if self.sensors:  # if player has sensors, it's probably an AI (and can get stuck)
+            if self.score == self.last_score:
+                self.stuck_counter += 1
+            else:
+                self.stuck_counter = 0
+            self.last_score = self.score
+            return self.stuck_counter > self.stuck_limit
+        else:
+            return 0
+
     @abstractmethod
     def sense(self, track, keys):
         """

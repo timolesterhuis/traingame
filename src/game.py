@@ -264,7 +264,7 @@ class Engine(object):
         """
         toggle_options = dict(
             train=0,
-            sensors=False,
+            sensors=True,
             background=0,
             fps_limiter=True
         )
@@ -373,19 +373,38 @@ class Engine(object):
         :param destination: target location of the player (x, y)
         :return: nothing
         """
+        old_pos = player.get_position(pixel=True)
         player.set_position(destination)
-
+        new_pos = player.get_position(pixel=True)
+        
         score = self.track.get_distance(player)
+        
         if score > 0:
+            if  score <= 10:
+                if self._passed_finish(old_pos, new_pos):
+                    score = 1
             player.score = score
+            
 
         collision = self.track.check_collision(player)
-        if collision or player.score == 1:
+        if collision or player.score == 1 or player.is_stuck():
             player.alive = False
             player.ending_tick = self.tick
             life_span = player.ending_tick - player.starting_tick
             logger.info(f"Player {player.id} died with score {player.score:.0f} in {life_span} turns")
 
+    def _passed_finish(self, old, new):
+        path = []
+        x_old, y_old = old
+        x_new, y_new = new
+        for x in range(x_old, x_new + 1):
+            path.append([x, y_old])
+        for y in range(y_old, y_new + 1):
+            path.append([x, y])
+        
+        return any([p in self.track.finish for p in path])
+        
+        
     def _handle_pygame_events(self):
         """
         Handles all key events that have occured since last loop The active arrow keys are stored and passed to
