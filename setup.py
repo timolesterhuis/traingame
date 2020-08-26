@@ -7,6 +7,8 @@ from os.path import dirname
 from os.path import join
 from os.path import splitext
 
+from setuptools import setup, find_packages
+
 
 def read(*names, **kwargs):
     with io.open(
