@@ -1,0 +1,3 @@
+ipython
+bump2version
+black

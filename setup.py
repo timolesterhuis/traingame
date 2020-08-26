@@ -22,6 +22,7 @@ about = {}
 exec(read("src", "traingame", "__version__.py"), about)
 
 requirements = read("requirements.txt").split()
+requirements_dev = read("requirements_dev.txt").split()
 
 
 setup(
@@ -43,4 +44,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=requirements,
+    extra_require={
+        "dev": requirements_dev,
+    },
 )

@@ -175,6 +175,61 @@ class NaiveAi(Player):
         return acceleration_command, rotation_command
 
 
+class NaiveAi2(Player):
+    """
+    Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
+    """
+    SENSOR_DISTANCE = 60
+
+    def __init__(self):
+        """
+        Initialize and add 2 ray-tracing sensors.
+        """
+        super().__init__()
+        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.train_type = "white"
+
+
+        
+    def sense(self, track, keys):
+        """
+        Calls its sensors using the track information to find distance to the walls.
+
+        :param track: Environment object
+        :param keys: Not used
+        :return: a list with distances per sensor
+        """
+        percepts = [s.perceive(track) for s in self.sensors]
+        return percepts
+        
+
+
+    def plan(self, percepts):
+        """
+        Use the percepts to choose actions. This naive AI will match a certain speed and rotate away from the nearest
+        visible wall.
+
+        :param percepts:
+        :return: acceleration_command, rotation_command
+        """
+        if percepts[0] > percepts[-1]:
+            rotation_command = -1
+        else:
+            rotation_command = 1
+        
+        front_sense = percepts[1]
+        front_sensor = self.sensors[1]
+        
+        if front_sense >= ( (3/4) * front_sensor.depth):
+            acceleration_command = 0.5
+        elif front_sense >= ( (1/2) * front_sensor.depth):
+            acceleration_command = 0
+        else: 
+            acceleration_command = -1
+            
+        return acceleration_command, rotation_command
+
+
 class DistanceSensor(object):
     """
     Linear distance sensor using a simple raytracing algorithm. This sensor is drawable because it has percept, depth
