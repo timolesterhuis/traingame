@@ -33,13 +33,14 @@ class Engine(object):
     ACCELERATION = 5
     ROTATION_SPEED = 180
 
-    def __init__(self, environment, players, headless=False):
+    def __init__(self, environment, players, headless=False, tick_limit=0):
         """
         :param environment: instance of game.Environment
         :param players: iterable of subclasses of player.Player
         """
         pygame.init()
         self.tick = 0
+        self.tick_limit = tick_limit
 
         self.game_status = Engine.RUNNING
         self.track = environment
@@ -77,6 +78,10 @@ class Engine(object):
                 time.sleep(time_to_next_frame)
 
             self.tick += 1
+            
+            if self.tick_limit:
+                if self.tick > self.tick_limit:
+                    self._end_game()
         return self
 
     def stop_drawing(self):
@@ -218,7 +223,19 @@ class Engine(object):
         screen = pygame.display.set_mode(size)
 
         train = pygame.image.load('visuals/train.png')
+        train_blue = pygame.image.load('visuals/train-blue.png')
+        train_green = pygame.image.load('visuals/train-green.png')
+        train_white = pygame.image.load('visuals/train-white.png')
+        
         self.train = pygame.transform.scale(train, (78, 21))
+        self.train_blue = pygame.transform.scale(train_blue, (78, 21))
+        self.train_green = pygame.transform.scale(train_green, (78, 21))
+        self.train_white = pygame.transform.scale(train_white, (78, 21))
+        
+        self.train_types = {"default": self.train, 
+                            "blue": self.train_blue,
+                            "green": self.train_green,
+                            "white": self.train_white}
 
         font_size = Engine.SCALE * 3
         self.roboto_font = freetype.Font('visuals/roboto.ttf', size=font_size)
@@ -517,7 +534,8 @@ class Engine(object):
         """
         scaled_x, scaled_y = player.get_position(scale=self.SCALE)
         if self.game_settings['train'] == 0:
-            sprite = pygame.transform.rotate(self.train, -player.rotation + 90)
+            
+            sprite = pygame.transform.rotate(self.train_types[player.train_type], -player.rotation + 90)
             self._draw_sprite(sprite, scaled_x, scaled_y)
         elif self.game_settings['train'] == 1:
             # Set target

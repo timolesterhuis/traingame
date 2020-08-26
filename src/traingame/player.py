@@ -29,6 +29,8 @@ class Player(ABC):
         self.stuck_counter = 0
         self.stuck_limit = 50
         
+        self.train_type = "default"
+        
     def is_stuck(self):
         """
         Checks if player gets stuck.
