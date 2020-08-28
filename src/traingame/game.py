@@ -17,8 +17,9 @@ import numpy as np
 from loguru import logger
 import pygame
 from pygame import freetype
+import pkg_resources
 
-from src import bresenham
+from . import bresenham
 
 
 class Engine(object):
@@ -218,14 +219,14 @@ class Engine(object):
             int(self.track.height * Engine.SCALE)
         )
         pygame.display.set_caption('Train-a-Train')
-        icon = pygame.image.load('visuals/icon.png')
+        icon = pygame.image.load(pkg_resources.resource_filename("traingame", 'visuals/icon.png'))
         pygame.display.set_icon(icon)
         screen = pygame.display.set_mode(size)
 
-        train = pygame.image.load('visuals/train.png')
-        train_blue = pygame.image.load('visuals/train-blue.png')
-        train_green = pygame.image.load('visuals/train-green.png')
-        train_white = pygame.image.load('visuals/train-white.png')
+        train = pygame.image.load(pkg_resources.resource_filename("traingame", 'visuals/train.png'))
+        train_blue = pygame.image.load(pkg_resources.resource_filename("traingame", 'visuals/train-blue.png'))
+        train_green = pygame.image.load(pkg_resources.resource_filename("traingame", 'visuals/train-green.png'))
+        train_white = pygame.image.load(pkg_resources.resource_filename("traingame", 'visuals/train-white.png'))
         
         self.train = pygame.transform.scale(train, (78, 21))
         self.train_blue = pygame.transform.scale(train_blue, (78, 21))
@@ -238,7 +239,9 @@ class Engine(object):
                             "white": self.train_white}
 
         font_size = Engine.SCALE * 3
-        self.roboto_font = freetype.Font('visuals/roboto.ttf', size=font_size)
+        self.roboto_font = freetype.Font(
+            pkg_resources.resource_filename("traingame", 'visuals/roboto.ttf'),
+            size=font_size)
 
         return screen
 
@@ -397,11 +400,10 @@ class Engine(object):
         score = self.track.get_distance(player)
         
         if score > 0:
-            if  score <= 10:
+            if score <= 10:
                 if self._passed_finish(old_pos, new_pos):
                     score = 1
             player.score = score
-            
 
         collision = self.track.check_collision(player)
         if collision or player.score == 1 or player.is_stuck():
@@ -420,7 +422,6 @@ class Engine(object):
             path.append([x, y])
         
         return any([p in self.track.finish for p in path])
-        
         
     def _handle_pygame_events(self):
         """
@@ -568,11 +569,7 @@ class Engine(object):
         :return: nothing
         """
         if sensor.is_drawable:
-            # Determine color and length based on percept value.
-            if sensor.percept is sensor.depth:
-                color = (0, 255, 0)
-            else:
-                color = (255, 255, 255)
+            color = sensor.color_scale[sensor.percept]
 
             # Set target
             target = self.track.translate(
@@ -627,8 +624,8 @@ class Environment(object):
 
         :param track: must correspond to the name of a folder in tracks/foldername
         """
-        track_path = f'tracks/{track}/track.png'
-        background_path = f'tracks/{track}/track_bg.png'
+        track_path = pkg_resources.resource_filename("traingame", f'tracks/{track}/track.png')
+        background_path = pkg_resources.resource_filename("traingame", f'tracks/{track}/track_bg.png')
 
         track_img = Image.open(track_path)
         self.width = track_img.width

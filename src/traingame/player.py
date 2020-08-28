@@ -6,6 +6,7 @@ Module to handle players. See :doc:`ai-players` on how to create new players
 """
 from abc import abstractmethod, ABC
 import pygame
+import pickle
 
 
 class Player(ABC):
@@ -189,8 +190,6 @@ class NaiveAi2(Player):
         self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
         self.train_type = "white"
 
-
-        
     def sense(self, track, keys):
         """
         Calls its sensors using the track information to find distance to the walls.
@@ -201,8 +200,6 @@ class NaiveAi2(Player):
         """
         percepts = [s.perceive(track) for s in self.sensors]
         return percepts
-        
-
 
     def plan(self, percepts):
         """
@@ -230,6 +227,157 @@ class NaiveAi2(Player):
         return acceleration_command, rotation_command
 
 
+class NaiveAi3(NaiveAi2):
+    """
+    Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
+    """
+    SENSOR_DISTANCE = 60
+
+    def __init__(self):
+        """
+        Initialize and add 2 ray-tracing sensors.
+        """
+        super().__init__()
+        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.train_type = "green"
+
+    def sense(self, track, keys):
+        """
+        Calls its sensors using the track information to find distance to the walls.
+
+        :param track: Environment object
+        :param keys: Not used
+        :return: a list with distances per sensor
+        """
+        percepts = [s.perceive(track) for s in self.sensors]
+        return percepts
+
+    def plan(self, percepts):
+        """
+        Use the percepts to choose actions. This naive AI will match a certain speed and rotate away from the nearest
+        visible wall.
+
+        :param percepts:
+        :return: acceleration_command, rotation_command
+        """
+        if percepts[0] > percepts[-1]:
+            rotation_command = -1
+        else:
+            rotation_command = 1
+
+        front_sense = percepts[1]
+        front_sensor = self.sensors[1]
+
+        if front_sense >= ((3 / 4) * front_sensor.depth):
+            acceleration_command = 1 / (self.speed or 1)
+        elif front_sense >= ((1 / 2) * front_sensor.depth):
+            if self.speed <= 1:
+                acceleration_command = 0.1
+            else:
+                acceleration_command = 0
+        else:
+            if self.speed <= 1:
+                acceleration_command = 0.1
+            else:
+                acceleration_command = -1
+
+        return acceleration_command, rotation_command
+
+
+class NeatAI(Player):
+    """
+    Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
+    """
+    SENSOR_DISTANCE = 60
+
+    def __init__(self, network):
+        """
+        Initialize and add 2 ray-tracing sensors.
+        """
+        super().__init__()
+        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.network = network
+        self.max_score = -1
+
+    def sense(self, track, keys):
+        """
+        Calls its sensors using the track information to find distance to the walls.
+
+        :param track: Environment object
+        :param keys: Not used
+        :return: a list with distances per sensor
+        """
+        percepts = [s.perceive(track) / self.SENSOR_DISTANCE for s in self.sensors]
+        return percepts
+
+    def plan(self, percepts):
+        """
+        Use the percepts to choose actions. This naive AI will match a certain speed and rotate away from the nearest
+        visible wall.
+
+        :param percepts:
+        :return: acceleration_command, rotation_command
+        """
+        response = self.network.activate(percepts)
+
+        acceleration_command, rotation_command = response
+
+        return acceleration_command, rotation_command
+
+
+class PickleAi(NeatAI):
+
+    def __init__(self, pickle_file):
+        with open(pickle_file, "rb") as f:
+            net = pickle.load(f)
+
+        super().__init__(net)
+
+
+class NeatSpeedAI(Player):
+    """
+    Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
+    """
+    SENSOR_DISTANCE = 60
+
+    def __init__(self, network):
+        """
+        Initialize and add 2 ray-tracing sensors.
+        """
+        super().__init__()
+        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.network = network
+        self.max_score = -1
+
+        self.train_type = "blue"
+
+    def sense(self, track, keys):
+        """
+        Calls its sensors using the track information to find distance to the walls.
+
+        :param track: Environment object
+        :param keys: Not used
+        :return: a list with distances per sensor
+        """
+        percepts = [s.perceive(track) / self.SENSOR_DISTANCE for s in self.sensors]
+        percepts.append(self.speed)
+        return percepts
+
+    def plan(self, percepts):
+        """
+        Use the percepts to choose actions. This naive AI will match a certain speed and rotate away from the nearest
+        visible wall.
+
+        :param percepts:
+        :return: acceleration_command, rotation_command
+        """
+        response = self.network.activate(percepts)
+
+        acceleration_command, rotation_command = response
+
+        return acceleration_command, rotation_command
+
+
 class DistanceSensor(object):
     """
     Linear distance sensor using a simple raytracing algorithm. This sensor is drawable because it has percept, depth
@@ -246,6 +394,7 @@ class DistanceSensor(object):
         self.depth = depth
         self.percept = None
         self.is_drawable = True  # Sensor must have percept, depth and get_absolute_angle() to be drawable
+        self.color_scale = self.calculate_sensor_color()
 
     def perceive(self, track):
         """
@@ -273,3 +422,21 @@ class DistanceSensor(object):
         """
         absolute_angle = self.player.rotation + self.angle
         return absolute_angle
+
+    @property
+    def percentage_sensor_value(self):
+        """
+        This is rounded to int values for simplicity
+        :return:
+        """
+        return int(self.percept / self.depth)
+
+    def calculate_sensor_color(self, c1=(255, 0, 0), c2=(0, 255, 0)):
+        rgb_list = [c1]
+        for t in range(self.depth):
+            curr_vector = [
+                int(c1[j] + (float(t) / (self.depth-1)) * (c2[j]-c1[j]))
+                for j in range(3)
+            ]
+            rgb_list.append(curr_vector)
+        return rgb_list
