@@ -7,6 +7,8 @@ Module to handle players. See :doc:`ai-players` on how to create new players
 from abc import abstractmethod, ABC
 import pygame
 import pickle
+import pkg_resources
+import neat
 
 
 class Player(ABC):
@@ -114,19 +116,12 @@ class HumanPlayer(Player):
     def sense(self, track, keys):
         """
         Nothing is sensed, keys are passed on to plan() function.
-
-        :param track: Environment object
-        :param keys: dictionary of keys
-        :return: keys dictionary
         """
         return keys
         
     def plan(self, percepts):
         """
         Listen to key input.
-
-        :param percepts: dict of keys that are pressed
-        :return: acceleration_command, rotation_command
         """
         # use boolean as int trick to get -1, 0 or 1 from keys (both keys => 0)
         acceleration_command = percepts[pygame.K_UP] - percepts[pygame.K_DOWN]
@@ -138,22 +133,18 @@ class NaiveAi(Player):
     """
     Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
     """
-    SENSOR_DISTANCE = 60
 
-    def __init__(self):
+    def __init__(self, sensors=(-30, 30), sensor_distance=60):
         """
         Initialize and add 2 ray-tracing sensors.
         """
         super().__init__()
-        self.sensors += [DistanceSensor(self, a, NaiveAi.SENSOR_DISTANCE) for a in [-30, 30]]
+        self.sensor_distance = sensor_distance
+        self.sensors += [DistanceSensor(self, a, self.sensor_distance) for a in sensors]
 
     def sense(self, track, keys):
         """
         Calls its sensors using the track information to find distance to the walls.
-
-        :param track: Environment object
-        :param keys: Not used
-        :return: a list with distances per sensor
         """
         percepts = [s.perceive(track) for s in self.sensors]
         return percepts
@@ -162,17 +153,12 @@ class NaiveAi(Player):
         """
         Use the percepts to choose actions. This naive AI will match a certain speed and rotate away from the nearest
         visible wall.
-
-        :param percepts:
-        :return: acceleration_command, rotation_command
         """
         if percepts[0] > percepts[1]:
             rotation_command = -1
         else:
             rotation_command = 1
-
         acceleration_command = self.speed < 1  # accelerate if going slow
-
         return acceleration_command, rotation_command
 
 
@@ -182,12 +168,13 @@ class NaiveAi2(Player):
     """
     SENSOR_DISTANCE = 60
 
-    def __init__(self):
+    def __init__(self, sensors=(-30, 0, 30), sensor_distance=60):
         """
         Initialize and add 2 ray-tracing sensors.
         """
         super().__init__()
-        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.sensor_distance = sensor_distance
+        self.sensors += [DistanceSensor(self, a, self.sensor_distance) for a in sensors]
         self.train_type = "white"
 
     def sense(self, track, keys):
@@ -217,9 +204,9 @@ class NaiveAi2(Player):
         front_sense = percepts[1]
         front_sensor = self.sensors[1]
         
-        if front_sense >= ( (3/4) * front_sensor.depth):
+        if front_sense >= ((3/4) * front_sensor.depth):
             acceleration_command = 0.5
-        elif front_sense >= ( (1/2) * front_sensor.depth):
+        elif front_sense >= ((1/2) * front_sensor.depth):
             acceleration_command = 0
         else: 
             acceleration_command = -1
@@ -231,14 +218,14 @@ class NaiveAi3(NaiveAi2):
     """
     Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
     """
-    SENSOR_DISTANCE = 60
 
-    def __init__(self):
+    def __init__(self, sensors=(-30, 0, 30), sensor_distance=60):
         """
         Initialize and add 2 ray-tracing sensors.
         """
         super().__init__()
-        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.sensor_distance = sensor_distance
+        self.sensors += [DistanceSensor(self, a, self.sensor_distance) for a in sensors]
         self.train_type = "green"
 
     def sense(self, track, keys):
@@ -288,64 +275,62 @@ class NeatAI(Player):
     """
     Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
     """
-    SENSOR_DISTANCE = 60
 
-    def __init__(self, network):
+    def __init__(self, network, sensors=(-30, 0, 30), sensor_distance=60):
         """
         Initialize and add 2 ray-tracing sensors.
         """
         super().__init__()
-        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.sensor_distance = sensor_distance
+        self.sensors += [DistanceSensor(self, a, self.sensor_distance) for a in sensors]
         self.network = network
         self.max_score = -1
 
     def sense(self, track, keys):
         """
         Calls its sensors using the track information to find distance to the walls.
-
-        :param track: Environment object
-        :param keys: Not used
-        :return: a list with distances per sensor
         """
-        percepts = [s.perceive(track) / self.SENSOR_DISTANCE for s in self.sensors]
+        percepts = [s.perceive(track) / self.sensor_distance for s in self.sensors]
         return percepts
 
     def plan(self, percepts):
         """
         Use the percepts to choose actions. This naive AI will match a certain speed and rotate away from the nearest
         visible wall.
-
-        :param percepts:
-        :return: acceleration_command, rotation_command
         """
         response = self.network.activate(percepts)
-
         acceleration_command, rotation_command = response
-
         return acceleration_command, rotation_command
 
 
 class PickleAi(NeatAI):
 
-    def __init__(self, pickle_file):
+    def __init__(self, pickle_file, config_file, **kwargs):
         with open(pickle_file, "rb") as f:
-            net = pickle.load(f)
+            binary_model = pickle.load(f)
+        config = neat.Config(
+            neat.DefaultGenome,
+            neat.DefaultReproduction,
+            neat.DefaultSpeciesSet,
+            neat.DefaultStagnation,
+            config_file)
 
-        super().__init__(net)
+        net = neat.nn.FeedForwardNetwork.create(binary_model, config)
+        super().__init__(net, **kwargs)
 
 
 class NeatSpeedAI(Player):
     """
     Super simple Naive AI that will try to stay away from the walls. User ray-tracing sensors (DistanceSensor).
     """
-    SENSOR_DISTANCE = 60
 
-    def __init__(self, network):
+    def __init__(self, network, sensors=(-30, 0, 30), sensor_distance=60):
         """
         Initialize and add 2 ray-tracing sensors.
         """
         super().__init__()
-        self.sensors += [DistanceSensor(self, a, self.SENSOR_DISTANCE) for a in [-30, 0, 30]]
+        self.sensor_distance = sensor_distance
+        self.sensors += [DistanceSensor(self, a, self.sensor_distance) for a in sensors]
         self.network = network
         self.max_score = -1
 
@@ -359,7 +344,7 @@ class NeatSpeedAI(Player):
         :param keys: Not used
         :return: a list with distances per sensor
         """
-        percepts = [s.perceive(track) / self.SENSOR_DISTANCE for s in self.sensors]
+        percepts = [s.perceive(track) / self.sensor_distance for s in self.sensors]
         percepts.append(self.speed)
         return percepts
 
@@ -376,6 +361,46 @@ class NeatSpeedAI(Player):
         acceleration_command, rotation_command = response
 
         return acceleration_command, rotation_command
+
+
+class PreTrainedSpeedAI(NeatSpeedAI):
+
+    def __init__(self, **kwargs):
+        saved_model = pkg_resources.resource_filename("traingame", "models/assen-127.pickle")
+        config_file = pkg_resources.resource_filename("traingame", "config/config-feedforwardspeed.cfg")
+
+        with open(saved_model, "rb") as f:
+            winner = pickle.load(f)
+        config = neat.Config(
+            neat.DefaultGenome,
+            neat.DefaultReproduction,
+            neat.DefaultSpeciesSet,
+            neat.DefaultStagnation,
+            config_file)
+
+        net = neat.nn.FeedForwardNetwork.create(winner, config)
+
+        super().__init__(net, **kwargs)
+
+
+class PreTrainedAI(NeatSpeedAI):
+
+    def __init__(self, **kwargs):
+        saved_model = pkg_resources.resource_filename("traingame", "models/finish-assen-distance.pickle")
+        config_file = pkg_resources.resource_filename("traingame", "config/config-feedforward-assen.cfg")
+
+        with open(saved_model, "rb") as f:
+            winner = pickle.load(f)
+        config = neat.Config(
+            neat.DefaultGenome,
+            neat.DefaultReproduction,
+            neat.DefaultSpeciesSet,
+            neat.DefaultStagnation,
+            config_file)
+
+        net = neat.nn.FeedForwardNetwork.create(winner, config)
+
+        super().__init__(net, **kwargs)
 
 
 class DistanceSensor(object):

@@ -1,3 +1,4 @@
 ipython
 bump2version
 black
+twine
