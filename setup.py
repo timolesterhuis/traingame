@@ -47,4 +47,7 @@ setup(
     extra_require={
         "dev": requirements_dev,
     },
+    entry_points={
+        "console_scripts": ["traingame=traingame.cli:app"],
+    },
 )
