@@ -9,6 +9,7 @@ import traingame.player
 import neat
 
 import pkg_resources
+from functools import partial
 
 
 ai_players = {
@@ -43,19 +44,6 @@ app = typer.Typer()
 
 
 @app.command()
-def hello(name: str):
-    typer.echo(f"Hello {name}")
-
-
-@app.command()
-def goodbye(name: str, formal: bool = False):
-    if formal:
-        typer.echo(f"Goodbye {name}. Have a good day.")
-    else:
-        typer.echo(f"Bye {name}!")
-
-
-@app.command()
 def play(track: Track = Track.assen, ai: Optional[List[AIPlayer]] = typer.Option(None)):
     ai.insert(0, AIPlayer.human)
     typer.echo(track)
@@ -70,31 +58,39 @@ def play(track: Track = Track.assen, ai: Optional[List[AIPlayer]] = typer.Option
 
 
 @app.command()
-def example():
+def example(speed: bool = False, checkpoints: int = 0,
+            statistics: bool = True, stdout: bool = True,
+            save: bool = True, track: Track = Track.assen):
+    config_file = "config-feedforwardspeed.cfg" if speed else "config-feedforward.cfg"
     config = neat.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,
         neat.DefaultSpeciesSet,
         neat.DefaultStagnation,
-        pkg_resources.resource_filename("traingame", "config/config-feedforwardspeed.cfg"))
+        pkg_resources.resource_filename("traingame", f"config/{config_file}"))
 
     # Create the population, which is the top-level object for a NEAT run.
     p = neat.Population(config)
 
     # Add a stdout reporter to show progress in the terminal.
-    p.add_reporter(neat.Checkpointer(5))
-    p.add_reporter(neat.StatisticsReporter())
-    p.add_reporter(neat.StdOutReporter(True))
+    if checkpoints:
+        p.add_reporter(neat.Checkpointer(checkpoints))
+    if statistics:
+        p.add_reporter(neat.StatisticsReporter())
+    if stdout:
+        p.add_reporter(neat.StdOutReporter(True))
 
     # Run until a solution is found.
-    winner = p.run(eval_genomes)
+    train_func = partial(eval_genomes, track=track.value)
+    winner = p.run(train_func)
 
     # Display the winning genome.
     typer.echo('\nBest genome:\n{!s}'.format(winner))
 
     # save winner
-    with open("saves/winner-ctrnn", "wb") as f:
-        pickle.dump(winner, f)
+    if save:
+        with open("saves/winner-ctrnn", "wb") as f:
+            pickle.dump(winner, f)
 
     # Show output of the most fit genome against training data.
     # ASSEN = Environment("assen")

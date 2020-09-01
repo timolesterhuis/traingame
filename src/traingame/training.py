@@ -3,13 +3,13 @@ from traingame.player import NeatSpeedAI
 import neat
 
 
-def eval_genomes(genomes, config):
+def eval_genomes(genomes, config, track="assen"):
     ai_players = []
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         ai_players.append(NeatSpeedAI(net))
 
-    track = Environment("assen")
+    track = Environment(track)
     max_score = track.distance_matrix.max()
     game_engine = Engine(
         headless=False,

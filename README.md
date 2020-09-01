@@ -1,23 +1,18 @@
-Train-a-Train
-====================================================
+traingame
+=========
 
-.. image:: https://readthedocs.org/projects/train-a-train/badge/?version=latest
-   :target: https://train-a-train.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
 
-.. image::  https://img.shields.io/pypi/l/pydiagnostics.svg?color=brightgreen
-   :target: https://github.com/tim00w/diagnostics/blob/master/LICENSE
-   :alt: License: MIT
 
-**Train-a-Train** is a 2D train racing game made for demonstrating the simplest of AI applications. To use as in a workshop please check the *workshop* section in the documentation (see below).
+**traingame** is a 2D train racing game made for demonstrating AI applications. 
+The game is based on Laurens Koppenol' [Train-a-Train](https://github.com/lkoppenol/train-a-train) Repository, 
+With some additional tweaks to make it suitable for training Neural Networks. 
+This code includes some examples using NEAT: Neuro Evolution of Augmenting Topologies.
 
-Feel free to contact me on LinkedIn for questions or your high score!
+Feel free to contact me for questions or your high score!
 
 This project was initially used for a workshop at ProRail, the Dutch rail infrastructure company. This explains the train ;)
 
-Documentation
--------------
+Warning
+-------
 
-Documentation to be found on `ReadTheDocs <https://train-a-train.readthedocs.io/en/latest/>`_.
-
-.. image:: ./docs/source/screenshot.jpg
+This project is still Work in Progress. You could run into bugs when trying it out!
