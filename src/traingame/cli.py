@@ -4,7 +4,7 @@ from enum import Enum
 import pickle
 
 from traingame.game import Engine, Environment
-from .training import eval_genomes
+from .training import eval_genomes, fitness_speed, fitness_distance
 import traingame.player
 import neat
 
@@ -44,10 +44,7 @@ app = typer.Typer()
 
 
 @app.command()
-def play(track: Track = Track.assen, ai: Optional[List[AIPlayer]] = typer.Option(None)):
-    ai.insert(0, AIPlayer.human)
-    typer.echo(track)
-    typer.echo(ai)
+def run(track: Track = Track.assen, ai: Optional[List[AIPlayer]] = typer.Option(None)):
     game_engine = Engine(
         headless=False,
         environment=Environment(track.value),
@@ -58,10 +55,21 @@ def play(track: Track = Track.assen, ai: Optional[List[AIPlayer]] = typer.Option
 
 
 @app.command()
+def play(track: Track = Track.assen, ai: Optional[List[AIPlayer]] = typer.Option(None)):
+    ai.insert(0, AIPlayer.human)
+    run(track=track, ai=ai)
+    return
+
+
+@app.command()
 def example(speed: bool = False, checkpoints: int = 0,
             statistics: bool = True, stdout: bool = True,
             save: bool = True, track: Track = Track.assen):
+
     config_file = "config-feedforwardspeed.cfg" if speed else "config-feedforward.cfg"
+    ai = "neatspeed" if speed else "neat"
+    fitness = fitness_speed if speed else fitness_distance
+
     config = neat.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,
@@ -81,7 +89,7 @@ def example(speed: bool = False, checkpoints: int = 0,
         p.add_reporter(neat.StdOutReporter(True))
 
     # Run until a solution is found.
-    train_func = partial(eval_genomes, track=track.value)
+    train_func = partial(eval_genomes, track=track.value, ai=ai, apply_fitness=fitness)
     winner = p.run(train_func)
 
     # Display the winning genome.

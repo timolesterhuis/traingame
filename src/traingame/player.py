@@ -286,6 +286,8 @@ class NeatAI(Player):
         self.network = network
         self.max_score = -1
 
+        self.train_type = "blue"
+
     def sense(self, track, keys):
         """
         Calls its sensors using the track information to find distance to the walls.
