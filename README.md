@@ -19,6 +19,24 @@ Warning
 This project is still Work in Progress. You could run into bugs when trying it out!
 
 
+Installation
+------------
+
+Clone or download this repository, and open it in your favorite python IDE:
+
+    git clone https://github.com/timolesterhuis/traingame.git
+
+Install the project requirements:
+
+    python -m pip install -r requirements.txt
+
+Install the project as an editable python package:
+
+    python -m pip install -e .
+
+and you'll be able to fiddle around!
+
+
 Documentation
 -------------
 
