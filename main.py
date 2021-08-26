@@ -1,5 +1,5 @@
-from src.game import Engine, Environment
-from src.player import HumanPlayer
+from traingame.game import Engine, Environment
+from traingame.player import HumanPlayer
 
 
 def main():
