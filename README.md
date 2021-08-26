@@ -6,7 +6,7 @@ traingame
 **traingame** is a 2D train racing game made for demonstrating AI applications. 
 The game is based on Laurens Koppenol' [Train-a-Train](https://github.com/lkoppenol/train-a-train) Repository, 
 With some additional tweaks to make it suitable for training Neural Networks. 
-This code includes some examples using NEAT: Neuro Evolution of Augmenting Topologies.
+This code includes some examples using NEAT: Neuro Evolution of Augmenting Topologies. (http://www.cs.ucf.edu/~kstanley/neat.html)
 
 Feel free to contact me for questions or your high score!
 
